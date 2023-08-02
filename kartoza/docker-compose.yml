@@ -1,0 +1,51 @@
+version: '1.0'
+
+volumes:
+   geoserver-data:
+   postgis-data:
+
+services:
+   postgis:
+      image: kartoza/postgis
+      volumes:
+        - postgis-data:/var/lib/postgresql
+      ports:
+        - 25432:5432
+      environment:
+        # If you need to create multiple database you can add coma separated databases eg gis,data
+        - POSTGRES_DB=gis,mantapjambi
+        - POSTGRES_USER=docker
+        - POSTGRES_PASS=docker
+        - ALLOW_IP_RANGE=0.0.0.0/0
+        # Add extensions you need to be enabled by default in the DB.  Default are the five specified below
+        - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+        - RUN_AS_ROOT=true
+      restart: no
+      healthcheck:
+        test: "PGPASSWORD=docker pg_isready -h 127.0.0.1 -U docker -d postgres"
+
+   geoserver:
+      image: kartoza/geoserver
+      volumes:
+        - geoserver-data:/opt/geoserver/data_dir
+      ports:
+        - 8080:8080
+      restart: no
+      environment:
+        - GEOSERVER_DATA_DIR=/opt/geoserver/data_dir
+        - GEOWEBCACHE_CACHE_DIR=/opt/geoserver/data_dir/gwc
+        - GEOSERVER_ADMIN_PASSWORD=geoserver
+        - GEOSERVER_ADMIN_USER=admin
+        - INITIAL_MEMORY=2G
+        - MAXIMUM_MEMORY=4G
+        # - STABLE_EXTENSIONS=
+        # - COMMUNITY_EXTENSIONS=${COMMUNITY_EXTENSIONS}
+        - GEOSERVER_CONTEXT_ROOT=geoserver
+      depends_on:
+        postgis:
+          condition: service_healthy
+      healthcheck:
+        test: "curl --fail --silent --write-out 'HTTP CODE : %{http_code}\n' --output /dev/null -u admin:'geoserver' http://localhost:8080/geoserver/rest/about/version.xml"
+        interval: 1m30s
+        timeout: 10s
+        retries: 3
