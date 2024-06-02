@@ -13,7 +13,7 @@ services:
         - 25432:5432
       environment:
         # If you need to create multiple database you can add coma separated databases eg gis,data
-        - POSTGRES_DB=gis,mantapjambi
+        - POSTGRES_DB=gis
         - POSTGRES_USER=docker
         - POSTGRES_PASS=docker
         - ALLOW_IP_RANGE=0.0.0.0/0
